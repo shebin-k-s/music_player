@@ -145,11 +145,9 @@ class _TakePhotoAutomaticallyState extends State<TakePhotoAutomatically> {
           );
         } else if (songs.isNotEmpty) {
           return DetailsScreen(
-            // songs:songs,
-            trackTitle: songs[0].name,
+            songs:songs,
+            selectedIndex: 0,
             onBack: () {},
-            trackUrl: songs[0].downloadUrl,
-            duration: songs[0].duration,
           );
         } else {
           // Handle the case where there are no songs found

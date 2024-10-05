@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:music_player/Screens/details_screen.dart';
+import 'package:music_player/api/model.dart';
 import 'package:music_player/widgets/main_screen.dart';
 
 class MiniPlayer extends StatefulWidget {
@@ -82,9 +83,15 @@ class _MiniPlayerState extends State<MiniPlayer> {
           context,
           MaterialPageRoute(
             builder: (context) => DetailsScreen(
-              trackUrl: widget.downloadUrl,
-              trackTitle: widget.trackTitle,
-              duration: totalDuration.inSeconds,
+              songs: [
+                Song(
+                  name: widget.trackTitle,
+                  imageUrl: '',
+                  downloadUrl: widget.downloadUrl,
+                  duration: widget.duration,
+                ),
+              ],
+              selectedIndex: 0,
               onBack: () {
                 if (isPlayingNotifier.value) {
                   audioPlayer.resume();

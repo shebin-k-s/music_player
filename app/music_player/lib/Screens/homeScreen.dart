@@ -70,9 +70,8 @@ class _HomeScreenState extends State<HomeScreen> {
                         context,
                         MaterialPageRoute(
                           builder: (context) => DetailsScreen(
-                            trackTitle: songs[index].name,
-                            duration: songs[index].duration,
-                            trackUrl: songs[index].downloadUrl,
+                            songs: songs,
+                            selectedIndex: index,
                             onBack: () {
                               isPlaying.value = true;
                               currentTrackIndex.value = index;
@@ -101,7 +100,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         },
                       ),
                     );
-                  } else{
+                  } else {
                     return const SizedBox.shrink();
                   }
                 },

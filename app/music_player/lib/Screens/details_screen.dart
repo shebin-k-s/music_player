@@ -1,19 +1,25 @@
 import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/material.dart';
+import 'package:music_player/api/model.dart';
 import 'package:music_player/widgets/main_screen.dart';
 
 class DetailsScreen extends StatelessWidget {
-  final String trackTitle;
-  final String trackUrl;
-  final int duration;
+  // final String trackTitle;
+  // final String trackUrl;
+  // final int duration;
+  final int selectedIndex;
   final VoidCallback onBack;
+  final List<Song> songs;
 
-  DetailsScreen(
-      {super.key,
-      required this.trackTitle,
-      required this.onBack,
-      required this.trackUrl,
-      required this.duration});
+  DetailsScreen({
+    super.key,
+    required this.onBack,
+    // required this.trackTitle,
+    // required this.trackUrl,
+    // required this.duration,
+    required this.songs,
+    required this.selectedIndex,
+  });
 
   ValueNotifier<bool> isPlayingNotifier = ValueNotifier(false);
 
@@ -21,11 +27,15 @@ class DetailsScreen extends StatelessWidget {
 
   ValueNotifier<Duration> currentPosition = ValueNotifier(Duration.zero);
 
+  ValueNotifier<int> currentIndex = ValueNotifier(0);
+
   Duration totalDuration = const Duration(seconds: 0);
 
   Future<void> setupAudioPlayer() async {
-    audioPlayer.setSourceUrl(trackUrl);
-    totalDuration = Duration(seconds: duration);
+    currentIndex.value = selectedIndex;
+
+    audioPlayer.setSourceUrl(songs[currentIndex.value].downloadUrl);
+    totalDuration = Duration(seconds: songs[currentIndex.value].duration);
 
     audioPlayer.onPositionChanged.listen((position) {
       currentPosition.value = position;
@@ -55,6 +65,15 @@ class DetailsScreen extends StatelessWidget {
 
   Future<void> seekTo(Duration duration) async {
     await audioPlayer.seek(duration);
+  }
+
+  Future<void> changeTracker(int value) async {
+    int num = (currentIndex.value + value) % songs.length;
+    currentIndex.value = num;
+    audioPlayer.setSourceUrl(songs[num].downloadUrl);
+    totalDuration = Duration(seconds: songs[num].duration);
+
+    playPause();
   }
 
   @override
@@ -94,7 +113,7 @@ class DetailsScreen extends StatelessWidget {
               ),
               const SizedBox(height: 20),
               Text(
-                trackTitle,
+                songs[selectedIndex].name,
                 overflow: TextOverflow.visible,
                 style: const TextStyle(
                   fontSize: 24,
@@ -134,19 +153,34 @@ class DetailsScreen extends StatelessWidget {
                 ],
               ),
               const SizedBox(height: 20),
-              ValueListenableBuilder(
-                valueListenable: isPlayingNotifier,
-                builder: (context, isPlaying, child) {
-                  return IconButton(
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceAround,
+                children: [
+                  IconButton(
                     iconSize: 64,
-                    icon: Icon(
-                      isPlaying
-                          ? Icons.pause_circle_outline
-                          : Icons.play_circle_outline,
-                    ),
-                    onPressed: () => playPause(),
-                  );
-                },
+                    onPressed: () => changeTracker(-1),
+                    icon: const Icon(Icons.skip_previous),
+                  ),
+                  ValueListenableBuilder(
+                    valueListenable: isPlayingNotifier,
+                    builder: (context, isPlaying, child) {
+                      return IconButton(
+                        iconSize: 64,
+                        icon: Icon(
+                          isPlaying
+                              ? Icons.pause_circle_outline
+                              : Icons.play_circle_outline,
+                        ),
+                        onPressed: () => playPause(),
+                      );
+                    },
+                  ),
+                  IconButton(
+                    iconSize: 64,
+                    onPressed: () => changeTracker(1),
+                    icon: const Icon(Icons.skip_next),
+                  ),
+                ],
               ),
             ],
           ),
