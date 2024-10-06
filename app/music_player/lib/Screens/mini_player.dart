@@ -10,13 +10,13 @@ class MiniPlayer extends StatefulWidget {
   final VoidCallback onClose;
   final int duration;
 
-  MiniPlayer({
-    super.key,
+  const MiniPlayer({
+    Key? key,
     required this.trackTitle,
     required this.onClose,
     required this.downloadUrl,
     required this.duration,
-  });
+  }) : super(key: key);
 
   @override
   _MiniPlayerState createState() => _MiniPlayerState();
@@ -39,10 +39,12 @@ class _MiniPlayerState extends State<MiniPlayer> {
 
     audioPlayer.onPositionChanged.listen((position) {
       currentPosition.value = position;
-      setState(() {
-        _sliderValue =
-            (position.inSeconds / totalDuration.inSeconds).clamp(0.0, 1.0);
-      });
+      if (mounted) {
+        setState(() {
+          _sliderValue =
+              (position.inSeconds / totalDuration.inSeconds).clamp(0.0, 1.0);
+        });
+      }
     });
 
     // Get and listen to duration changes
@@ -75,6 +77,12 @@ class _MiniPlayerState extends State<MiniPlayer> {
   }
 
   @override
+  void dispose() {
+    audioPlayer.stop();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: () {
@@ -102,18 +110,24 @@ class _MiniPlayerState extends State<MiniPlayer> {
         );
       },
       child: Container(
-        height: 80,
-        color: Colors.grey[900],
+        height: 90,
+        color: Colors.grey[850],
+        padding: const EdgeInsets.symmetric(horizontal: 10.0, vertical: 8.0),
         child: Row(
           children: [
-            // Display circular track image
+            // Track image or placeholder
             Padding(
               padding: const EdgeInsets.all(8.0),
               child: ClipOval(
-                child: Image.asset('assets/images/rotating.gif'),
+                child: Image.asset(
+                  'assets/images/rotating.gif',
+                  width: 60,
+                  height: 60,
+                  fit: BoxFit.cover,
+                ),
               ),
             ),
-            // Track title and progress bar
+            // Track title and progress slider
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -127,36 +141,53 @@ class _MiniPlayerState extends State<MiniPlayer> {
                   ValueListenableBuilder<Duration>(
                     valueListenable: currentPosition,
                     builder: (context, position, child) {
-                      return Slider(
-                        value: _sliderValue,
-                        min: 0,
-                        max: 1,
-                        onChanged: (value) {
-                          setState(() {
-                            _sliderValue = value;
-                          });
-                          _seekTo(value);
-                        },
+                      return SliderTheme(
+                        data: SliderTheme.of(context).copyWith(
+                          thumbShape: RoundSliderThumbShape(enabledThumbRadius: 6.0),
+                          trackHeight: 2.5,
+                          overlayShape: RoundSliderOverlayShape(overlayRadius: 10.0),
+                        ),
+                        child: Slider(
+                          value: _sliderValue,
+                          min: 0,
+                          max: 1,
+                          activeColor: Colors.blueAccent,
+                          inactiveColor: Colors.grey,
+                          onChanged: (value) {
+                            setState(() {
+                              _sliderValue = value;
+                            });
+                            _seekTo(value);
+                          },
+                        ),
                       );
                     },
                   ),
                 ],
               ),
             ),
-            // Play/Pause button
+            // Play/Pause button with animation
             ValueListenableBuilder<bool>(
               valueListenable: isPlayingNotifier,
               builder: (context, isPlaying, child) {
                 return IconButton(
-                  icon: Icon(
-                    isPlaying ? Icons.pause : Icons.play_arrow,
-                    color: Colors.white,
+                  icon: AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 300),
+                    transitionBuilder: (child, animation) {
+                      return ScaleTransition(scale: animation, child: child);
+                    },
+                    child: Icon(
+                      isPlaying ? Icons.pause_circle_filled : Icons.play_circle_filled,
+                      key: ValueKey<bool>(isPlaying),
+                      color: Colors.blueAccent,
+                      size: 36,
+                    ),
                   ),
                   onPressed: _playPause,
                 );
               },
             ),
-            // Close or collapse button
+            // Close button
             IconButton(
               icon: const Icon(Icons.close, color: Colors.white),
               onPressed: widget.onClose,
@@ -165,11 +196,5 @@ class _MiniPlayerState extends State<MiniPlayer> {
         ),
       ),
     );
-  }
-
-  @override
-  void dispose() {
-    // The global audio player should not be disposed here
-    super.dispose();
   }
 }

@@ -4,9 +4,6 @@ import 'package:music_player/api/model.dart';
 import 'package:music_player/widgets/main_screen.dart';
 
 class DetailsScreen extends StatelessWidget {
-  // final String trackTitle;
-  // final String trackUrl;
-  // final int duration;
   final int selectedIndex;
   final VoidCallback onBack;
   final List<Song> songs;
@@ -14,26 +11,18 @@ class DetailsScreen extends StatelessWidget {
   DetailsScreen({
     super.key,
     required this.onBack,
-    // required this.trackTitle,
-    // required this.trackUrl,
-    // required this.duration,
     required this.songs,
     required this.selectedIndex,
   });
 
   ValueNotifier<bool> isPlayingNotifier = ValueNotifier(false);
-
   ValueNotifier<bool> isLoading = ValueNotifier(false);
-
   ValueNotifier<Duration> currentPosition = ValueNotifier(Duration.zero);
-
   ValueNotifier<int> currentIndex = ValueNotifier(0);
-
   Duration totalDuration = const Duration(seconds: 0);
 
   Future<void> setupAudioPlayer() async {
     currentIndex.value = selectedIndex;
-
     audioPlayer.setSourceUrl(songs[currentIndex.value].downloadUrl);
     totalDuration = Duration(seconds: songs[currentIndex.value].duration);
 
@@ -69,9 +58,13 @@ class DetailsScreen extends StatelessWidget {
 
   Future<void> changeTracker(int value) async {
     int num = (currentIndex.value + value) % songs.length;
-    currentIndex.value = num;
+    await audioPlayer.stop();
+
     audioPlayer.setSourceUrl(songs[num].downloadUrl);
     totalDuration = Duration(seconds: songs[num].duration);
+
+    currentIndex.value = num;
+    isPlayingNotifier.value = false;
 
     playPause();
   }
@@ -79,110 +72,176 @@ class DetailsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     setupAudioPlayer();
-
     playPause();
+
     return WillPopScope(
       onWillPop: () async {
         onBack();
         return true;
       },
       child: Scaffold(
-        appBar: AppBar(
-          leading: IconButton(
-            icon: const Icon(Icons.arrow_back),
-            onPressed: () {
-              onBack();
-              Navigator.pop(context);
-            },
+        extendBodyBehindAppBar: true,
+        body: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [Colors.deepPurple.shade800, Colors.deepPurple.shade200],
+            ),
           ),
-        ),
-        body: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              ValueListenableBuilder(
-                valueListenable: isPlayingNotifier,
-                builder: (context, isPlaying, child) {
-                  return Image.asset(
-                    isPlaying
-                        ? 'assets/images/rotating.gif'
-                        : 'assets/images/static.png',
-                  );
-                },
-              ),
-              const SizedBox(height: 20),
-              Text(
-                songs[selectedIndex].name,
-                overflow: TextOverflow.visible,
-                style: const TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(height: 10),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          child: SafeArea(
+            child: Padding(
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  ValueListenableBuilder<Duration>(
-                    valueListenable: currentPosition,
-                    builder: (context, position, child) {
-                      return Text(
-                        "${position.inMinutes}:${(position.inSeconds % 60).toString().padLeft(2, '0')}",
-                      );
-                    },
-                  ),
-                  Expanded(
-                    child: ValueListenableBuilder<Duration>(
-                      valueListenable: currentPosition,
-                      builder: (context, position, child) {
-                        return Slider(
-                          value: position.inSeconds.toDouble(),
-                          min: 0,
-                          max: totalDuration.inSeconds.toDouble(),
-                          onChanged: (value) {
-                            seekTo(Duration(seconds: value.toInt()));
-                          },
-                        );
-                      },
-                    ),
-                  ),
-                  Text(
-                    "${totalDuration.inMinutes}:${(totalDuration.inSeconds % 60).toString().padLeft(2, '0')}",
-                  ),
-                ],
-              ),
-              const SizedBox(height: 20),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceAround,
-                children: [
-                  IconButton(
-                    iconSize: 64,
-                    onPressed: () => changeTracker(-1),
-                    icon: const Icon(Icons.skip_previous),
-                  ),
+                  const SizedBox(height: 20),
                   ValueListenableBuilder(
                     valueListenable: isPlayingNotifier,
                     builder: (context, isPlaying, child) {
-                      return IconButton(
-                        iconSize: 64,
-                        icon: Icon(
-                          isPlaying
-                              ? Icons.pause_circle_outline
-                              : Icons.play_circle_outline,
+                      return Container(
+                        width: 250,
+                        height: 250,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.3),
+                              spreadRadius: 2,
+                              blurRadius: 10,
+                              offset: const Offset(0, 5),
+                            ),
+                          ],
                         ),
-                        onPressed: () => playPause(),
+                        child: ClipOval(
+                          child: Image.asset(
+                            isPlaying
+                                ? 'assets/images/rotating.gif'
+                                : 'assets/images/static.png',
+                            fit: BoxFit.cover,
+                          ),
+                        ),
                       );
                     },
                   ),
-                  IconButton(
-                    iconSize: 64,
-                    onPressed: () => changeTracker(1),
-                    icon: const Icon(Icons.skip_next),
+                  const SizedBox(height: 40),
+                  ValueListenableBuilder(
+                    valueListenable: currentIndex,
+                    builder: (context, index, child) {
+                      return Column(
+                        children: [
+                          Text(
+                            songs[index].name,
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(
+                              fontSize: 24,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            'Unknown Artist',
+                            style: TextStyle(
+                              fontSize: 16,
+                              color: Colors.white.withOpacity(0.7),
+                            ),
+                          ),
+                        ],
+                      );
+                    },
+                  ),
+                  const SizedBox(height: 40),
+                  ValueListenableBuilder<Duration>(
+                    valueListenable: currentPosition,
+                    builder: (context, position, child) {
+                      return Column(
+                        children: [
+                          Slider(
+                            value: position.inSeconds.toDouble(),
+                            min: 0,
+                            max: totalDuration.inSeconds.toDouble(),
+                            onChanged: (value) {
+                              seekTo(Duration(seconds: value.toInt()));
+                            },
+                            activeColor: Colors.white,
+                            inactiveColor: Colors.white.withOpacity(0.3),
+                          ),
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 16),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text(
+                                  "${position.inMinutes}:${(position.inSeconds % 60).toString().padLeft(2, '0')}",
+                                  style: TextStyle(
+                                      color: Colors.white.withOpacity(0.7)),
+                                ),
+                                ValueListenableBuilder(
+                                  valueListenable: currentIndex,
+                                  builder: (context, value, child) {
+                                    return Text(
+                                      "${totalDuration.inMinutes}:${(totalDuration.inSeconds % 60).toString().padLeft(2, '0')}",
+                                      style: TextStyle(
+                                          color: Colors.white.withOpacity(0.7)),
+                                    );
+                                  },
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      );
+                    },
+                  ),
+                  const SizedBox(height: 20),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: [
+                      IconButton(
+                        iconSize: 48,
+                        onPressed: () => changeTracker(-1),
+                        icon: const Icon(Icons.skip_previous,
+                            color: Colors.white),
+                      ),
+                      ValueListenableBuilder(
+                        valueListenable: isPlayingNotifier,
+                        builder: (context, isPlaying, child) {
+                          return Container(
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: Colors.white,
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withOpacity(0.2),
+                                  spreadRadius: 2,
+                                  blurRadius: 8,
+                                  offset: const Offset(0, 2),
+                                ),
+                              ],
+                            ),
+                            child: IconButton(
+                              iconSize: 64,
+                              icon: Icon(
+                                isPlaying ? Icons.pause : Icons.play_arrow,
+                                color: Colors.deepPurple.shade800,
+                              ),
+                              onPressed: () => playPause(),
+                            ),
+                          );
+                        },
+                      ),
+                      IconButton(
+                        iconSize: 48,
+                        onPressed: () => changeTracker(1),
+                        icon: const Icon(Icons.skip_next, color: Colors.white),
+                      ),
+                    ],
                   ),
                 ],
               ),
-            ],
+            ),
           ),
         ),
       ),

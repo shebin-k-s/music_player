@@ -12,7 +12,7 @@ class ApiService {
 
   Future<List<Song>> getSongData(String query) async {
     try {
-      final response = await _dio.get('/songs', queryParameters: {'query': query});
+      final response = await _dio.get('/songs', queryParameters: {'query': query, 'limit':100});
       
       if (response.data['success']) {
         final results = response.data['data']['results'] as List;

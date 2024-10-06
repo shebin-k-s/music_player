@@ -1,11 +1,11 @@
 import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/material.dart';
 import 'package:music_player/Screens/homeScreen.dart';
+import 'package:music_player/screens/analytics.dart';
 import 'package:music_player/screens/camera.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
-import '../Screens/ai_screen.dart';
-  AudioPlayer audioPlayer = AudioPlayer();
-
+AudioPlayer audioPlayer = AudioPlayer();
 
 class MainScreen extends StatelessWidget {
   final ValueNotifier<int> selectedIndexNotifier = ValueNotifier(0);
@@ -13,15 +13,14 @@ class MainScreen extends StatelessWidget {
   final _pages = [
     HomeScreen(),
     TakePhotoAutomatically(),
+    EmotionAnalyticsScreen(),
   ];
 
   MainScreen({super.key});
 
-  void _onItemTapped(int index) {
+  void _onItemTapped(int index) async {
     selectedIndexNotifier.value = index;
   }
-
- 
 
   @override
   Widget build(BuildContext context) {
@@ -30,7 +29,14 @@ class MainScreen extends StatelessWidget {
       builder: (context, index, child) {
         return Scaffold(
           appBar: AppBar(
-            title: const Text('Gecfy'),
+            title: const Text(
+              'Musify',
+              style: TextStyle(
+                color: Colors.white,
+              ),
+            ),
+            backgroundColor: Colors.indigo.shade800,
+            elevation: 0,
           ),
           body: _pages[index],
           bottomNavigationBar: BottomNavigationBar(
@@ -43,9 +49,16 @@ class MainScreen extends StatelessWidget {
                 icon: Icon(Icons.computer),
                 label: 'AI',
               ),
+              BottomNavigationBarItem(
+                icon: Icon(Icons.analytics_outlined),
+                label: 'Analytics',
+              ),
             ],
             currentIndex: index,
-            selectedItemColor: Colors.blue,
+            selectedItemColor: Colors.indigo.shade800,
+            unselectedItemColor: Colors.grey,
+            backgroundColor: Colors.white,
+            elevation: 8,
             onTap: (index) => _onItemTapped(index),
           ),
         );

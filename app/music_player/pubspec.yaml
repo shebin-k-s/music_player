@@ -42,6 +42,9 @@ dependencies:
   gallery_saver:
   dio: ^5.7.0
   flutter_tflite: ^1.0.1
+  fl_chart: 0.36.0
+  shared_preferences:
+  loading_indicator: ^3.1.1
 
 dev_dependencies:
   flutter_test:

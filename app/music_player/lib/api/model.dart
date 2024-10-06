@@ -11,7 +11,7 @@ class Song {
   // Factory constructor to create a Song object from JSON
   factory Song.fromJson(Map<String, dynamic> json) {
     // Extract image and download URL from the JSON
-    final imageUrl = json['image'] != null && json['image'].isNotEmpty ? json['image'][0]['url'] : '';
+    final imageUrl = json['image'] != null && json['image'].isNotEmpty ? json['image'][2]['url'] : '';
     
     // Extract the highest quality download URL
     final downloadUrl = json['downloadUrl'] != null && json['downloadUrl'].isNotEmpty 
