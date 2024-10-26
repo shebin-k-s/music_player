@@ -1,7 +1,8 @@
+
 import 'dart:developer';
 
 import 'package:dio/dio.dart';
-import 'package:music_player/api/model.dart';
+import 'package:music_player/domains/song_model.dart';
 
 class ApiService {
   final Dio _dio = Dio();
@@ -16,6 +17,7 @@ class ApiService {
       
       if (response.data['success']) {
         final results = response.data['data']['results'] as List;
+        log('message');
         print(results);
         return results.map((songData) => Song.fromJson(songData)).toList();
       } else {

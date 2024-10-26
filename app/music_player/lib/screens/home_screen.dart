@@ -3,8 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:audioplayers/audioplayers.dart';
 
 class MusicPlayer extends StatelessWidget {
-  AudioPlayer _audioPlayer = AudioPlayer();
-  // List<CameraDescription> cameras = await availableCameras();
+  final AudioPlayer _audioPlayer = AudioPlayer();
 
   ValueNotifier<bool> isPlayingNotifier = ValueNotifier(false);
   ValueNotifier<bool> isLoading = ValueNotifier(false);

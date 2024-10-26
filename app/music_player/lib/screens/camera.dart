@@ -1,22 +1,21 @@
-import 'dart:developer';
-import 'dart:io';
+import 'dart:developer' as dev;
 import 'dart:math';
 
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_tflite/flutter_tflite.dart';
-import 'package:gallery_saver/gallery_saver.dart';
 import 'package:loading_indicator/loading_indicator.dart';
 import 'package:music_player/Screens/details_screen.dart';
-import 'package:music_player/api/api.dart';
 import 'package:music_player/api/label.dart';
-import 'package:music_player/api/model.dart';
-import 'package:music_player/widgets/main_screen.dart';
-import 'package:path_provider/path_provider.dart';
+import 'package:music_player/applications/music_player/music_player_bloc.dart';
+import 'package:music_player/domains/song_model.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class TakePhotoAutomatically extends StatefulWidget {
+  const TakePhotoAutomatically({super.key});
+
   @override
   _TakePhotoAutomaticallyState createState() => _TakePhotoAutomaticallyState();
 }
@@ -27,65 +26,72 @@ class _TakePhotoAutomaticallyState extends State<TakePhotoAutomatically> {
   CameraController? _cameraController;
   bool _isCameraInitialized = false;
 
-  ValueNotifier<bool> isLoading = ValueNotifier(true);
-
   List<Song> songs = [];
 
-  Future<List<Song>> getSongs(String query) async {
-    if (songs.isEmpty) {
-      int randomNumber = Random().nextInt(10) + 1;
-      String res = "";
-      if (query == 'sad') {
-        res = neutral[randomNumber];
-      } else if (query == "happy") {
-        res = happy[randomNumber];
-      } else if (query == "angry") {
-        res = neutral[randomNumber];
-      } else if (query == "disgusted") {
-        res = inspiring[randomNumber];
-      } else if (query == "surprised") {
-        res = melody[randomNumber];
-      } else if (query == "fearful") {
-        res = motivating[randomNumber];
-      }else if (query == "neutral") {
-        res = melody[randomNumber];
-      }else  {
-        res = "malayalam song";
-      }
-
-      return ApiService().getSongData(res);
+  void getSongs(String query) async {
+    int randomNumber = Random().nextInt(10) + 1;
+    print(query);
+    String res = "";
+    if (query == 'sad') {
+      res = neutral.toString();
+    } else if (query == "happy") {
+      res = happy[randomNumber];
+    } else if (query == "angry") {
+      res = neutral[randomNumber];
+    } else if (query == "disgusted") {
+      res = inspiring[randomNumber];
+    } else if (query == "surprised") {
+      res = melody[randomNumber];
+    } else if (query == "fearful") {
+      res = motivating[randomNumber];
+    } else if (query == "neutral") {
+      res = melody[randomNumber];
     } else {
-      return songs;
+      res = "malayalam song";
     }
+
+    context.read<MusicPlayerBloc>().add(FetchMusic(query: res));
   }
 
   Future<void> _tfliteInit() async {
     String? res = await Tflite.loadModel(
-        model: 'assets/facialmodel.tflite',
-        labels: 'assets/labels.txt',
-        numThreads: 1,
-        isAsset: true,
-        useGpuDelegate: false);
+      model: 'assets/facialmodel.tflite',
+      labels: 'assets/labels.txt',
+      numThreads: 1,
+      isAsset: true,
+      useGpuDelegate: false,
+    );
+    if (res == null) {
+      print('Error loading model');
+    }
+
+    dev.log("tflite init");
   }
 
   @override
   void initState() {
     super.initState();
-    audioPlayer.stop();
+    _initializeAsyncDependencies();
+  }
 
-    _requestPermissions();
-    _tfliteInit();
+  Future<void> _initializeAsyncDependencies() async {
+    await _tfliteInit();
+    await _requestPermissions();
   }
 
   Future<void> _requestPermissions() async {
     await Permission.camera.request();
     await Permission.storage.request();
-
-    _initializeCamera();
+    await _initializeCamera();
   }
 
   Future<void> _initializeCamera() async {
     cameras = await availableCameras();
+    if (cameras.isEmpty || cameras.length <= 1) {
+      dev.log('No front-facing camera found');
+      return;
+    }
+    dev.log('Front-facing camera found');
 
     _cameraController = CameraController(
       cameras[1],
@@ -109,68 +115,71 @@ class _TakePhotoAutomaticallyState extends State<TakePhotoAutomatically> {
     if (_cameraController != null && _cameraController!.value.isInitialized) {
       try {
         XFile image = await _cameraController!.takePicture();
-
-        var recognitions = await Tflite.runModelOnImage(
+        dev.log('Image taken');
+        var recognitions;
+        try {
+          recognitions = await Tflite.runModelOnImage(
             path: image.path, // required
-            imageMean: 0.0, // defaults to 117.0
-            imageStd: 255.0, // defaults to 1.0
+            imageMean: 117, // defaults to 117.0
+            imageStd: 1, // defaults to 1.0
             numResults: 2, // defaults to 5
-            threshold: 0.2, // defaults to 0.1
-            asynch: true // defaults to true
-            );
-
-        if (recognitions == null) {
-          print("recognitions is null");
+            threshold: 0.1, // defaults to 0.1
+            asynch: true, // defaults to true
+          );
+        } catch (e) {
+          print("Error running model: $e");
           return;
         }
-        print(recognitions);
-        songs = await getSongs(recognitions[0]['label']);
 
-        if (recognitions.isNotEmpty) {
-          SharedPreferences prefs = await SharedPreferences.getInstance();
-          int count = prefs.getInt(recognitions[0]['label']) ?? 0;
-
-          count++;
-          await prefs.setInt(recognitions[0]['label'], count);
-
-          print("Sad recognized, count updated: $count");
+        if (recognitions == null || recognitions.isEmpty) {
+          print("No recognitions found");
+          return;
         }
 
-        isLoading.value = false;
+        print(recognitions);
+        getSongs(recognitions[0]['label']);
 
-        // final directory =
-        //     await getExternalStorageDirectory();
-        // String newPath =
-        //     '${directory?.path}/${DateTime.now().millisecondsSinceEpoch}.png'; // Generate a unique filename
+        SharedPreferences prefs = await SharedPreferences.getInstance();
+        int count = prefs.getInt(recognitions[0]['label']) ?? 0;
 
-        // await File(image.path).copy(newPath);
-
-        // await GallerySaver.saveImage(newPath); j
-
-        // log('Photo saved to: $newPath');
+        count++;
+        await prefs.setInt(recognitions[0]['label'], count);
+        Tflite.close();
       } catch (e) {
         print('Error taking photo: $e');
       }
     }
   }
 
-  void loadImages() {}
-
   @override
   void dispose() {
     super.dispose();
     _cameraController?.dispose();
-    audioPlayer.stop();
-
     Tflite.close();
   }
 
   @override
   Widget build(BuildContext context) {
-    return ValueListenableBuilder(
-      valueListenable: isLoading,
-      builder: (context, loading, child) {
-        if (loading) {
+    context.read<MusicPlayerBloc>().add(StopMusic());
+
+    return BlocBuilder<MusicPlayerBloc, MusicPlayerState>(
+      buildWhen: (previous, current) =>
+          current is MusicFetched || previous is MusicLoading,
+      builder: (context, state) {
+        if (state is MusicFetched) {
+          context.read<MusicPlayerBloc>().add(PlayMusic(musicIndex: 0));
+          return DetailsScreen(
+            song: state.songs.isNotEmpty
+                ? state.songs[0]
+                : Song(
+                    authorName: 'authorName',
+                    name: 'name',
+                    imageUrl: 'imageUrl',
+                    downloadUrl: 'downloadUrl',
+                    duration: 120,
+                  ),
+          );
+        } else {
           return const Center(
             child: SizedBox(
               width: 200,
@@ -180,22 +189,6 @@ class _TakePhotoAutomaticallyState extends State<TakePhotoAutomatically> {
                 strokeWidth: 0.5,
                 backgroundColor: Colors.transparent,
                 colors: [Colors.black],
-              ),
-            ),
-          );
-        } else if (songs.isNotEmpty) {
-          return DetailsScreen(
-            songs: songs,
-            selectedIndex: 0,
-            onBack: () {},
-          );
-        } else {
-          return const Center(
-            child: Text(
-              'No songs found.',
-              style: TextStyle(
-                color: Colors.black,
-                fontSize: 18,
               ),
             ),
           );

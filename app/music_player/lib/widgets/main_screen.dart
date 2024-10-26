@@ -1,30 +1,36 @@
+import 'dart:developer';
+
 import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:music_player/Screens/details_screen.dart';
 import 'package:music_player/Screens/homeScreen.dart';
+import 'package:music_player/applications/music_player/music_player_bloc.dart';
 import 'package:music_player/screens/analytics.dart';
 import 'package:music_player/screens/camera.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 AudioPlayer audioPlayer = AudioPlayer();
 
 class MainScreen extends StatelessWidget {
   final ValueNotifier<int> selectedIndexNotifier = ValueNotifier(0);
+  final HomeScreen homeScreen = HomeScreen();
 
   final _pages = [
-    HomeScreen(),
-    TakePhotoAutomatically(),
-    EmotionAnalyticsScreen(),
+    const Placeholder(),
+    const TakePhotoAutomatically(),
+    const EmotionAnalyticsScreen(),
   ];
 
   MainScreen({super.key});
 
-  void _onItemTapped(int index) async {
+  void _onItemTapped(int index) {
     selectedIndexNotifier.value = index;
   }
 
   @override
   Widget build(BuildContext context) {
-    return ValueListenableBuilder(
+    _pages[0] = homeScreen;
+    return ValueListenableBuilder<int>(
       valueListenable: selectedIndexNotifier,
       builder: (context, index, child) {
         return Scaffold(
@@ -38,7 +44,22 @@ class MainScreen extends StatelessWidget {
             backgroundColor: Colors.indigo.shade800,
             elevation: 0,
           ),
-          body: _pages[index],
+          body: SingleChildScrollView(
+            child: Column(
+              children: [
+                SizedBox(
+                  height: index == 0
+                      ? MediaQuery.of(context).size.height - 225
+                      : MediaQuery.of(context).size.height - 140,
+                  child: _pages[index],
+                ),
+                SizedBox(
+                  height: index == 0 ? 80 : 0,
+                  child: const BottomMusicPlayer(),
+                ),
+              ],
+            ),
+          ),
           bottomNavigationBar: BottomNavigationBar(
             items: const <BottomNavigationBarItem>[
               BottomNavigationBarItem(
@@ -63,6 +84,135 @@ class MainScreen extends StatelessWidget {
           ),
         );
       },
+    );
+  }
+}
+
+class BottomMusicPlayer extends StatelessWidget {
+  const BottomMusicPlayer({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: 80,
+      padding: const EdgeInsets.symmetric(horizontal: 16.0),
+      decoration: BoxDecoration(
+        color: Colors.indigo.shade800,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.2),
+            blurRadius: 8.0,
+            offset: const Offset(0, -2),
+          ),
+        ],
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          IconButton(
+            icon: const Icon(Icons.skip_previous, color: Colors.white),
+            onPressed: () {
+              context.read<MusicPlayerBloc>().add(PreviousMusic());
+            },
+          ),
+          BlocBuilder<MusicPlayerBloc, MusicPlayerState>(
+            buildWhen: (previous, current) => current is MusicPlaying,
+            builder: (context, state) {
+              if (state is MusicPlaying) {
+                return SizedBox(
+                  width: MediaQuery.of(context).size.width * .5,
+                  child: GestureDetector(
+                    onTap: () => Navigator.of(context).push(MaterialPageRoute(
+                      builder: (ctx) => DetailsScreen(song: state.song),
+                    )),
+                    child: Row(
+                      children: [
+                        SizedBox(
+                          width: 50,
+                          height: 50,
+                          child: ClipRRect(
+                            borderRadius:
+                                const BorderRadius.all(Radius.circular(50)),
+                            child: Image.network(state.song.imageUrl),
+                          ),
+                        ),
+                        const SizedBox(
+                          width: 16,
+                        ),
+                        SizedBox(
+                          width: MediaQuery.of(context).size.width / 3.1,
+                          child: Container(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Text(
+                                  state.song.name,
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                  textAlign: TextAlign.center,
+                                  overflow: TextOverflow.clip,
+                                  maxLines: 1,
+                                ),
+                                Text(
+                                  state.song.authorName,
+                                  style: const TextStyle(
+                                    color: Colors.white70,
+                                    fontSize: 12,
+                                  ),
+                                  textAlign: TextAlign.center,
+                                  maxLines: 1,
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              } else {
+                return const Text(
+                  'No song playing',
+                  style: TextStyle(color: Colors.white),
+                );
+              }
+            },
+          ),
+          Row(
+            children: [
+              BlocBuilder<MusicPlayerBloc, MusicPlayerState>(
+                buildWhen: (previous, current) =>
+                    current is MusicPlaying || current is MusicPaused,
+                builder: (context, state) {
+                  if (state is MusicPlaying) {
+                    return IconButton(
+                      icon: const Icon(Icons.pause, color: Colors.white),
+                      onPressed: () {
+                        context.read<MusicPlayerBloc>().add(PauseMusic());
+                      },
+                    );
+                  } else {
+                    return IconButton(
+                      icon: const Icon(Icons.play_arrow, color: Colors.white),
+                      onPressed: () {
+                        context.read<MusicPlayerBloc>().add(ResumeMusic());
+                      },
+                    );
+                  }
+                },
+              ),
+              IconButton(
+                icon: const Icon(Icons.skip_next, color: Colors.white),
+                onPressed: () {
+                  context.read<MusicPlayerBloc>().add(NextMusic());
+                },
+              ),
+            ],
+          ),
+        ],
+      ),
     );
   }
 }
