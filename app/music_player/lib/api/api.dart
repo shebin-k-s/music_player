@@ -9,11 +9,13 @@ class ApiService {
 
   ApiService() {
     _dio.options.baseUrl = 'https://saavn.dev/api/search';
+    _dio.options.connectTimeout = const Duration(seconds: 20);
   }
 
   Future<List<Song>> getSongData(String query) async {
     try {
       final response = await _dio.get('/songs', queryParameters: {'query': query, 'limit':100});
+      print(response);
       
       if (response.data['success']) {
         final results = response.data['data']['results'] as List;

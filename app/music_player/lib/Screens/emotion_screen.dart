@@ -13,20 +13,28 @@ import 'package:music_player/domains/song_model.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-class TakePhotoAutomatically extends StatefulWidget {
-  const TakePhotoAutomatically({super.key});
+class EmotionScreen extends StatefulWidget {
+  const EmotionScreen({super.key});
 
   @override
-  _TakePhotoAutomaticallyState createState() => _TakePhotoAutomaticallyState();
+  _EmotionScreenState createState() => _EmotionScreenState();
 }
 
-class _TakePhotoAutomaticallyState extends State<TakePhotoAutomatically> {
+class _EmotionScreenState extends State<EmotionScreen> {
   List<CameraDescription> cameras = [];
 
   CameraController? _cameraController;
-  bool _isCameraInitialized = false;
-
   List<Song> songs = [];
+
+  Song dummySong = Song(
+    authorName: 'Dhibu Ninan Thomas',
+    name: 'Angu Vaana Konilu',
+    imageUrl:
+        'https://c.saavncdn.com/504/ARM-Original-Motion-Picture-Soundtrack-Malayalam-2024-20241001211403-500x500.jpg',
+    downloadUrl:
+        'https://aac.saavncdn.com/504/2db935d8aa80f8289cfebafa5618ef5e_320.mp4',
+    duration: 249,
+  );
 
   void getSongs(String query) async {
     int randomNumber = Random().nextInt(10) + 1;
@@ -100,11 +108,6 @@ class _TakePhotoAutomaticallyState extends State<TakePhotoAutomatically> {
 
     try {
       await _cameraController?.initialize();
-      setState(() {
-        _isCameraInitialized = true;
-      });
-
-      // Automatically take a photo after the camera is initialized
       _takePhoto();
     } catch (e) {
       print('Error initializing camera: $e');
@@ -164,20 +167,13 @@ class _TakePhotoAutomaticallyState extends State<TakePhotoAutomatically> {
 
     return BlocBuilder<MusicPlayerBloc, MusicPlayerState>(
       buildWhen: (previous, current) =>
-          current is MusicFetched || previous is MusicLoading,
+          current is MusicFetched || current is MusicFetching,
       builder: (context, state) {
         if (state is MusicFetched) {
+          final song =  state.songs.isNotEmpty ? state.songs[0] : dummySong;
           context.read<MusicPlayerBloc>().add(PlayMusic(musicIndex: 0));
           return DetailsScreen(
-            song: state.songs.isNotEmpty
-                ? state.songs[0]
-                : Song(
-                    authorName: 'authorName',
-                    name: 'name',
-                    imageUrl: 'imageUrl',
-                    downloadUrl: 'downloadUrl',
-                    duration: 120,
-                  ),
+            song: state.songs.isNotEmpty ? state.songs[0] : dummySong,
           );
         } else {
           return const Center(

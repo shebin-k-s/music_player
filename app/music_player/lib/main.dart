@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:music_player/applications/music_player/music_player_bloc.dart';
-import 'package:music_player/widgets/main_screen.dart';
+import 'package:music_player/Screens/main_screen.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();

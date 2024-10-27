@@ -6,8 +6,8 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:music_player/Screens/details_screen.dart';
 import 'package:music_player/Screens/homeScreen.dart';
 import 'package:music_player/applications/music_player/music_player_bloc.dart';
-import 'package:music_player/screens/analytics.dart';
-import 'package:music_player/screens/camera.dart';
+import 'package:music_player/Screens/analytics.dart';
+import 'package:music_player/Screens/emotion_screen.dart';
 
 AudioPlayer audioPlayer = AudioPlayer();
 
@@ -17,7 +17,7 @@ class MainScreen extends StatelessWidget {
 
   final _pages = [
     const Placeholder(),
-    const TakePhotoAutomatically(),
+    const EmotionScreen(),
     const EmotionAnalyticsScreen(),
   ];
 
@@ -30,6 +30,7 @@ class MainScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     _pages[0] = homeScreen;
+    context.read<MusicPlayerBloc>().add(FetchMusic(query: "malayalam"));
     return ValueListenableBuilder<int>(
       valueListenable: selectedIndexNotifier,
       builder: (context, index, child) {
@@ -122,9 +123,11 @@ class BottomMusicPlayer extends StatelessWidget {
                 return SizedBox(
                   width: MediaQuery.of(context).size.width * .5,
                   child: GestureDetector(
-                    onTap: () => Navigator.of(context).push(MaterialPageRoute(
-                      builder: (ctx) => DetailsScreen(song: state.song),
-                    )),
+                    onTap: () => Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (ctx) => DetailsScreen(song: state.song),
+                      ),
+                    ),
                     child: Row(
                       children: [
                         SizedBox(

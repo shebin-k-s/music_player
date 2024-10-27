@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:developer';
 
 import 'package:audioplayers/audioplayers.dart';
 import 'package:bloc/bloc.dart';
@@ -12,6 +13,8 @@ class MusicPlayerBloc extends Bloc<MusicPlayerEvent, MusicPlayerState> {
   final AudioPlayer _audioPlayer = AudioPlayer();
   int currentMusicIndex = -1;
   List<Song> _songs = [];
+
+  List<Song> get songs => List.unmodifiable(_songs);
 
   MusicPlayerBloc() : super(MusicPlayerInitial()) {
     _audioPlayer.onPositionChanged.listen((position) {
@@ -31,7 +34,10 @@ class MusicPlayerBloc extends Bloc<MusicPlayerEvent, MusicPlayerState> {
   FutureOr<void> fetchMusic(
       FetchMusic event, Emitter<MusicPlayerState> emit) async {
     emit(MusicFetching());
+    print('music fetching for ${event.query}');
     _songs = await ApiService().getSongData(event.query);
+
+    log(_songs.length.toString());
 
     emit(MusicFetched(songs: _songs));
   }
@@ -39,13 +45,7 @@ class MusicPlayerBloc extends Bloc<MusicPlayerEvent, MusicPlayerState> {
   FutureOr<void> playMusic(
       PlayMusic event, Emitter<MusicPlayerState> emit) async {
     int previousMusicIndex = currentMusicIndex;
-
-    if (_songs.isNotEmpty) {
-      if (event.musicIndex < 0 && _songs.length > 1) {
-        currentMusicIndex = 0;
-      } else {
-        currentMusicIndex = event.musicIndex;
-      }
+    if (event.musicUrl != null) {
       emit(
         MusicPlaying(
           currentMusicIndex: currentMusicIndex,
@@ -54,12 +54,31 @@ class MusicPlayerBloc extends Bloc<MusicPlayerEvent, MusicPlayerState> {
         ),
       );
       await _audioPlayer.play(UrlSource(_songs[event.musicIndex].downloadUrl));
+    } else {
+      if (_songs.isNotEmpty) {
+        if (event.musicIndex < 0 && _songs.length > 1) {
+          currentMusicIndex = 0;
+        } else {
+          currentMusicIndex = event.musicIndex;
+        }
+        emit(
+          MusicPlaying(
+            currentMusicIndex: currentMusicIndex,
+            previousMusicIndex: previousMusicIndex,
+            song: _songs[currentMusicIndex],
+          ),
+        );
+        await _audioPlayer
+            .play(UrlSource(_songs[event.musicIndex].downloadUrl));
+      }
     }
   }
-   FutureOr<void> stopMusic(StopMusic event, Emitter<MusicPlayerState> emit) async {
-    await _audioPlayer.stop();  
-    currentMusicIndex = -1;     
-    emit(MusicStopped());       
+
+  FutureOr<void> stopMusic(
+      StopMusic event, Emitter<MusicPlayerState> emit) async {
+    await _audioPlayer.stop();
+    currentMusicIndex = -1;
+    emit(MusicStopped());
   }
 
   FutureOr<void> pauseMusic(

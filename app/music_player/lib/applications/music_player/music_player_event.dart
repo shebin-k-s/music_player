@@ -11,14 +11,15 @@ class FetchMusic extends MusicPlayerEvent {
 
 class PlayMusic extends MusicPlayerEvent {
   final int musicIndex;
+  final String? musicUrl;
 
   PlayMusic({
     required this.musicIndex,
+    this.musicUrl,
   });
 }
 
 class StopMusic extends MusicPlayerEvent {}
-
 
 class ResumeMusic extends MusicPlayerEvent {}
 
@@ -34,7 +35,7 @@ class SeekMusic extends MusicPlayerEvent {
   SeekMusic({required this.position});
 }
 
-class UpdateMusicPosition extends MusicPlayerEvent{
+class UpdateMusicPosition extends MusicPlayerEvent {
   final Duration position;
 
   UpdateMusicPosition({required this.position});

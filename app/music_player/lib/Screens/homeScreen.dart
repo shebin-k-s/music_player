@@ -3,6 +3,7 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:music_player/applications/music_player/music_player_bloc.dart';
+import 'package:music_player/domains/song_model.dart';
 import 'details_screen.dart';
 
 class HomeScreen extends StatelessWidget {
@@ -12,10 +13,7 @@ class HomeScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    context.read<MusicPlayerBloc>().add(FetchMusic(
-        query: searchController.text.isNotEmpty
-            ? searchController.text
-            : "malayalam"));
+   
 
     print('home revul');
     return Scaffold(
@@ -72,9 +70,17 @@ class HomeScreen extends StatelessWidget {
                   buildWhen: (previous, current) =>
                       current is MusicFetched || current is MusicFetching,
                   builder: (context, state) {
-                    print(state);
-                    if (state is MusicFetched) {
-                      if (state.songs.isEmpty) {
+                    if (state is MusicFetching) {
+                      return const Center(
+                        child: CircularProgressIndicator(
+                          color: Colors.white,
+                        ),
+                      );
+                    } else {
+                      final musicPlayerBloc = context.read<MusicPlayerBloc>();
+                      final List<Song> songs = musicPlayerBloc.songs;
+
+                      if (songs.isEmpty) {
                         return const Center(
                           child: Column(
                             mainAxisAlignment: MainAxisAlignment.center,
@@ -94,7 +100,7 @@ class HomeScreen extends StatelessWidget {
                         );
                       } else {
                         return ListView.builder(
-                          itemCount: state.songs.length,
+                          itemCount: songs.length,
                           padding: const EdgeInsets.symmetric(horizontal: 16.0),
                           itemBuilder: (context, index) {
                             return Card(
@@ -113,7 +119,7 @@ class HomeScreen extends StatelessWidget {
                                     context,
                                     MaterialPageRoute(
                                       builder: (context) => DetailsScreen(
-                                        song: state.songs[index],
+                                        song: songs[index],
                                       ),
                                     ),
                                   );
@@ -125,7 +131,7 @@ class HomeScreen extends StatelessWidget {
                                       ClipRRect(
                                         borderRadius: BorderRadius.circular(10),
                                         child: Image.network(
-                                          state.songs[index].imageUrl,
+                                          songs[index].imageUrl,
                                           fit: BoxFit.cover,
                                           width: 70,
                                           height: 70,
@@ -138,7 +144,7 @@ class HomeScreen extends StatelessWidget {
                                               CrossAxisAlignment.start,
                                           children: [
                                             Text(
-                                              state.songs[index].name,
+                                              songs[index].name,
                                               style: const TextStyle(
                                                 fontSize: 18,
                                                 fontWeight: FontWeight.w600,
@@ -147,7 +153,7 @@ class HomeScreen extends StatelessWidget {
                                             ),
                                             const SizedBox(height: 4),
                                             Text(
-                                              state.songs[index].authorName,
+                                              songs[index].authorName,
                                               style: const TextStyle(
                                                 fontSize: 14,
                                                 color: Colors.black54,
@@ -206,12 +212,6 @@ class HomeScreen extends StatelessWidget {
                           },
                         );
                       }
-                    } else {
-                      return const Center(
-                        child: CircularProgressIndicator(
-                          color: Colors.white,
-                        ),
-                      );
                     }
                   },
                 ),
@@ -223,186 +223,3 @@ class HomeScreen extends StatelessWidget {
     );
   }
 }
-      // bottomSheet: ValueListenableBuilder(
-      //   valueListenable: currentTrackIndex,
-      //   builder: (context, index, child) {
-      //     if (index >= 0) {
-      //       return MiniPlayer(
-      //         trackTitle: songs[index].name,
-      //         duration: songs[index].duration,
-      //         downloadUrl: songs[index].downloadUrl,
-      //         onClose: () {
-      //           isPlaying.value = false;
-      //         },
-      //       );
-      //     } else {
-      //       return const SizedBox.shrink();
-      //     }
-      //   },
-      // ),
-   
-
-/*
-Expanded(
-                child: ValueListenableBuilder<String>(
-                  valueListenable: searchQuery,
-                  builder: (context, query, child) {
-                    return FutureBuilder<List<Song>>(
-                      future: getSongs(),
-                      builder: (context, snapshot) {
-                        if (snapshot.connectionState ==
-                            ConnectionState.waiting) {
-                          return const Center(
-                            child: CircularProgressIndicator(
-                              valueColor:
-                                  AlwaysStoppedAnimation<Color>(Colors.white),
-                              strokeWidth: 3.0,
-                            ),
-                          );
-                        } else if (snapshot.hasError) {
-                          return Center(
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(Icons.error_outline,
-                                    size: 60, color: Colors.red.shade300),
-                                const SizedBox(height: 16),
-                                Text(
-                                  'Error loading data',
-                                  style: TextStyle(
-                                      fontSize: 18, color: Colors.red.shade300),
-                                ),
-                              ],
-                            ),
-                          );
-                        } else if (!snapshot.hasData ||
-                            snapshot.data!.isEmpty) {
-                          return const Center(
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(Icons.music_off,
-                                    size: 60, color: Colors.white70),
-                                SizedBox(height: 16),
-                                Text(
-                                  'No songs found',
-                                  style: TextStyle(
-                                      fontSize: 18, color: Colors.white70),
-                                ),
-                              ],
-                            ),
-                          );
-                        } else {
-                          songs = snapshot.data!;
-                          return ListView.builder(
-                            itemCount: songs.length,
-                            padding:
-                                const EdgeInsets.symmetric(horizontal: 16.0),
-                            itemBuilder: (context, index) {
-                              return Card(
-                                margin: const EdgeInsets.only(bottom: 16.0),
-                                elevation: 4,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(15),
-                                ),
-                                child: InkWell(
-                                  borderRadius: BorderRadius.circular(15),
-                                  onTap: () {
-                                    Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                        builder: (context) => DetailsScreen(
-                                          songs: songs,
-                                          selectedIndex: index,
-                                          onBack: () {
-                                            isPlaying.value = true;
-                                            currentTrackIndex.value = index;
-                                          },
-                                        ),
-                                      ),
-                                    );
-                                  },
-                                  child: Padding(
-                                    padding: const EdgeInsets.all(12.0),
-                                    child: Row(
-                                      children: [
-                                        ClipRRect(
-                                          borderRadius:
-                                              BorderRadius.circular(10),
-                                          child: Image.network(
-                                            songs[index].imageUrl,
-                                            fit: BoxFit.cover,
-                                            width: 70,
-                                            height: 70,
-                                          ),
-                                        ),
-                                        const SizedBox(width: 16),
-                                        Expanded(
-                                          child: Column(
-                                            crossAxisAlignment:
-                                                CrossAxisAlignment.start,
-                                            children: [
-                                              Text(
-                                                songs[index].name,
-                                                style: const TextStyle(
-                                                  fontSize: 18,
-                                                  fontWeight: FontWeight.w600,
-                                                  color: Colors.black87,
-                                                ),
-                                              ),
-                                              const SizedBox(height: 4),
-                                              const Text(
-                                                'Unknown Artist',
-                                                style: TextStyle(
-                                                  fontSize: 14,
-                                                  color: Colors.black54,
-                                                ),
-                                              ),
-                                            ],
-                                          ),
-                                        ),
-                                        ValueListenableBuilder(
-                                          valueListenable: currentTrackIndex,
-                                          builder: (context, value, child) {
-                                            return IconButton(
-                                              icon: Icon(
-                                                isPlaying.value &&
-                                                        value == index
-                                                    ? Icons.pause_circle_filled
-                                                    : Icons.play_circle_filled,
-                                                size: 40,
-                                                color: Colors.indigo.shade400,
-                                              ),
-                                              onPressed: () async {
-                                                audioPlayer.setSourceUrl(
-                                                    songs[index].downloadUrl);
-                                                int temp =
-                                                    currentTrackIndex.value;
-                                                currentTrackIndex.value = index;
-
-                                                if (isPlaying.value &&
-                                                    temp == index) {
-                                                  isPlaying.value = false;
-                                                  await audioPlayer.pause();
-                                                } else {
-                                                  isPlaying.value = true;
-                                                  await audioPlayer.resume();
-                                                }
-                                              },
-                                            );
-                                          },
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ),
-                              );
-                            },
-                          );
-                        }
-                      },
-                    );
-                  },
-                ),
-              ),
-              */

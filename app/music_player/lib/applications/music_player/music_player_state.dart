@@ -15,7 +15,6 @@ class MusicFetched extends MusicPlayerState {
   MusicFetched({required this.songs});
 }
 
-class MusicLoading extends MusicPlayerState{}
 
 class MusicPlaying extends MusicPlayerState {
   final int currentMusicIndex;
