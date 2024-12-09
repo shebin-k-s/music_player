@@ -37,7 +37,7 @@ class MusicPlayerBloc extends Bloc<MusicPlayerEvent, MusicPlayerState> {
     print('music fetching for ${event.query}');
     _songs = await ApiService().getSongData(event.query);
 
-    log(_songs.length.toString());
+    log('fetch song length :${_songs.length.toString()}');
 
     emit(MusicFetched(songs: _songs));
   }
@@ -45,15 +45,15 @@ class MusicPlayerBloc extends Bloc<MusicPlayerEvent, MusicPlayerState> {
   FutureOr<void> playMusic(
       PlayMusic event, Emitter<MusicPlayerState> emit) async {
     int previousMusicIndex = currentMusicIndex;
-    if (event.musicUrl != null) {
+    if (event.song != null) {
       emit(
         MusicPlaying(
-          currentMusicIndex: currentMusicIndex,
-          previousMusicIndex: previousMusicIndex,
-          song: _songs[currentMusicIndex],
+          currentMusicIndex: 0,
+          previousMusicIndex: 0,
+          song: event.song!,
         ),
       );
-      await _audioPlayer.play(UrlSource(_songs[event.musicIndex].downloadUrl));
+      await _audioPlayer.play(UrlSource(event.song!.downloadUrl));
     } else {
       if (_songs.isNotEmpty) {
         if (event.musicIndex < 0 && _songs.length > 1) {
@@ -90,12 +90,12 @@ class MusicPlayerBloc extends Bloc<MusicPlayerEvent, MusicPlayerState> {
   FutureOr<void> resumeMusic(
       ResumeMusic event, Emitter<MusicPlayerState> emit) async {
     if (currentMusicIndex > -1) {
-      _audioPlayer.resume();
       emit(MusicPlaying(
         currentMusicIndex: currentMusicIndex,
         previousMusicIndex: 0,
         song: _songs[currentMusicIndex],
       ));
+      _audioPlayer.resume();
     }
   }
 
@@ -103,12 +103,12 @@ class MusicPlayerBloc extends Bloc<MusicPlayerEvent, MusicPlayerState> {
       NextMusic event, Emitter<MusicPlayerState> emit) async {
     if (_songs.isNotEmpty) {
       int next = (currentMusicIndex + 1) % _songs.length;
-      await _audioPlayer.play(UrlSource(_songs[next].downloadUrl));
       emit(MusicPlaying(
         previousMusicIndex: currentMusicIndex,
         currentMusicIndex: next,
         song: _songs[next],
       ));
+      await _audioPlayer.play(UrlSource(_songs[next].downloadUrl));
       currentMusicIndex = next;
     }
   }
@@ -117,12 +117,12 @@ class MusicPlayerBloc extends Bloc<MusicPlayerEvent, MusicPlayerState> {
       PreviousMusic event, Emitter<MusicPlayerState> emit) async {
     int previous = (currentMusicIndex - 1) % _songs.length;
     if (_songs.isNotEmpty) {
-      await _audioPlayer.play(UrlSource(_songs[previous].downloadUrl));
       emit(MusicPlaying(
         currentMusicIndex: previous,
         previousMusicIndex: currentMusicIndex,
         song: _songs[previous],
       ));
+      await _audioPlayer.play(UrlSource(_songs[previous].downloadUrl));
       currentMusicIndex = previous;
     }
   }

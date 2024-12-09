@@ -24,8 +24,6 @@ class _EmotionScreenState extends State<EmotionScreen> {
   List<CameraDescription> cameras = [];
 
   CameraController? _cameraController;
-  List<Song> songs = [];
-
   Song dummySong = Song(
     authorName: 'Dhibu Ninan Thomas',
     name: 'Angu Vaana Konilu',
@@ -36,29 +34,39 @@ class _EmotionScreenState extends State<EmotionScreen> {
     duration: 249,
   );
 
+  bool songFetched = false;
+
   void getSongs(String query) async {
-    int randomNumber = Random().nextInt(10) + 1;
+    int randomNumber = Random().nextInt(50);
     print(query);
     String res = "";
-    if (query == 'sad') {
-      res = neutral.toString();
-    } else if (query == "happy") {
-      res = happy[randomNumber];
-    } else if (query == "angry") {
-      res = neutral[randomNumber];
-    } else if (query == "disgusted") {
-      res = inspiring[randomNumber];
-    } else if (query == "surprised") {
-      res = melody[randomNumber];
-    } else if (query == "fearful") {
-      res = motivating[randomNumber];
-    } else if (query == "neutral") {
-      res = melody[randomNumber];
-    } else {
-      res = "malayalam song";
-    }
+    switch (query.toLowerCase()) {
+      case 'sad':
+        res = motivating[randomNumber];
 
+      case 'happy':
+        res = happy[randomNumber];
+
+      case 'angry':
+        res = melody[randomNumber];
+
+      case 'disgusted':
+        res = inspiring[randomNumber];
+
+      case 'surprised':
+        res = neutral[randomNumber];
+
+      case 'fearful':
+        res = melody[randomNumber];
+
+      case 'neutral':
+        res = inspiring[randomNumber];
+
+      default:
+        res = 'malayalam';
+    }
     context.read<MusicPlayerBloc>().add(FetchMusic(query: res));
+    songFetched = true;
   }
 
   Future<void> _tfliteInit() async {
@@ -122,12 +130,12 @@ class _EmotionScreenState extends State<EmotionScreen> {
         var recognitions;
         try {
           recognitions = await Tflite.runModelOnImage(
-            path: image.path, // required
-            imageMean: 117, // defaults to 117.0
-            imageStd: 1, // defaults to 1.0
-            numResults: 2, // defaults to 5
-            threshold: 0.1, // defaults to 0.1
-            asynch: true, // defaults to true
+            path: image.path,
+            // imageMean: 117, // defaults to 117.0
+            // imageStd: 1, // defaults to 1.0
+            // numResults: 2, // defaults to 5
+            // threshold: 0.1, // defaults to 0.1
+            // asynch: true, // defaults to true
           );
         } catch (e) {
           print("Error running model: $e");
@@ -142,12 +150,14 @@ class _EmotionScreenState extends State<EmotionScreen> {
         print(recognitions);
         getSongs(recognitions[0]['label']);
 
+        _cameraController?.dispose();
+        Tflite.close();
+
         SharedPreferences prefs = await SharedPreferences.getInstance();
         int count = prefs.getInt(recognitions[0]['label']) ?? 0;
 
         count++;
         await prefs.setInt(recognitions[0]['label'], count);
-        Tflite.close();
       } catch (e) {
         print('Error taking photo: $e');
       }
@@ -156,9 +166,10 @@ class _EmotionScreenState extends State<EmotionScreen> {
 
   @override
   void dispose() {
-    super.dispose();
     _cameraController?.dispose();
     Tflite.close();
+    dev.log('tflite closed');
+    super.dispose();
   }
 
   @override
@@ -169,11 +180,18 @@ class _EmotionScreenState extends State<EmotionScreen> {
       buildWhen: (previous, current) =>
           current is MusicFetched || current is MusicFetching,
       builder: (context, state) {
-        if (state is MusicFetched) {
-          final song =  state.songs.isNotEmpty ? state.songs[0] : dummySong;
-          context.read<MusicPlayerBloc>().add(PlayMusic(musicIndex: 0));
+        if (state is MusicFetched && songFetched) {
+          dev.log(state.toString());
+          final song = state.songs.isNotEmpty ? state.songs[0] : dummySong;
+          context.read<MusicPlayerBloc>().add(
+                PlayMusic(
+                  musicIndex: 0,
+                  song: state.songs.isEmpty ? song : null,
+                ),
+              );
           return DetailsScreen(
-            song: state.songs.isNotEmpty ? state.songs[0] : dummySong,
+            song: song,
+            showBackButton: false,
           );
         } else {
           return const Center(

@@ -5,7 +5,7 @@
 
 
     <application
-        android:label="music_player"
+        android:label="Musify"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity

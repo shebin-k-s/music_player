@@ -11,11 +11,11 @@ class FetchMusic extends MusicPlayerEvent {
 
 class PlayMusic extends MusicPlayerEvent {
   final int musicIndex;
-  final String? musicUrl;
+  final Song? song;
 
   PlayMusic({
     required this.musicIndex,
-    this.musicUrl,
+    this.song,
   });
 }
 

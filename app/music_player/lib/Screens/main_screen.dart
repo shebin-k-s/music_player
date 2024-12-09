@@ -1,10 +1,8 @@
-import 'dart:developer';
-
 import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:music_player/Screens/details_screen.dart';
-import 'package:music_player/Screens/homeScreen.dart';
+import 'package:music_player/Screens/home_screen.dart';
 import 'package:music_player/applications/music_player/music_player_bloc.dart';
 import 'package:music_player/Screens/analytics.dart';
 import 'package:music_player/Screens/emotion_screen.dart';
@@ -136,15 +134,38 @@ class BottomMusicPlayer extends StatelessWidget {
                           child: ClipRRect(
                             borderRadius:
                                 const BorderRadius.all(Radius.circular(50)),
-                            child: Image.network(state.song.imageUrl),
+                            child: Image.network(
+                              state.song.imageUrl,
+                              loadingBuilder:
+                                  (context, child, loadingProgress) {
+                                if (loadingProgress == null) return child;
+                                return const Center(
+                                    child: CircularProgressIndicator());
+                              },
+                              errorBuilder: (context, error, stackTrace) =>
+                                  const Icon(Icons.error),
+                            ),
                           ),
                         ),
                         const SizedBox(
                           width: 16,
                         ),
-                        SizedBox(
-                          width: MediaQuery.of(context).size.width / 3.1,
-                          child: Container(
+                        GestureDetector(
+                          onHorizontalDragEnd: (details) {
+                            if (details.primaryVelocity != null) {
+                              if (details.primaryVelocity! < 0) {
+                                context
+                                    .read<MusicPlayerBloc>()
+                                    .add(NextMusic());
+                              } else if (details.primaryVelocity! > 0) {
+                                context
+                                    .read<MusicPlayerBloc>()
+                                    .add(PreviousMusic());
+                              }
+                            }
+                          },
+                          child: SizedBox(
+                            width: MediaQuery.of(context).size.width / 3.2,
                             child: Column(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
@@ -165,6 +186,7 @@ class BottomMusicPlayer extends StatelessWidget {
                                     fontSize: 12,
                                   ),
                                   textAlign: TextAlign.center,
+                                  overflow: TextOverflow.ellipsis,
                                   maxLines: 1,
                                 ),
                               ],

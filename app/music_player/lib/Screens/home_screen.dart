@@ -1,5 +1,3 @@
-import 'dart:math';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:music_player/applications/music_player/music_player_bloc.dart';
@@ -13,9 +11,6 @@ class HomeScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-   
-
-    print('home revul');
     return Scaffold(
       body: Container(
         decoration: BoxDecoration(
